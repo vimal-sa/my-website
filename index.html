@@ -1,10 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheets Data Binding</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
 <body>
 
-<h1>My First Heading</h1>
+    <h2>Live Spreadsheet Data</h2>
+    <div id="loading">Loading data...</div>
+    <table id="data-table" style="display:none;">
+        <thead id="table-head"></thead>
+        <tbody id="table-body"></tbody>
+    </table>
 
-<p>My first paragraph.</p>
+    <script>
+        // Replace this with your actual "Publish to the web" TSV or CSV URL
+        const SHEET_URL = 'https://google.com';
 
+        async function fetchAndBindData() {
+            try {
+                const response = await fetch(SHEET_URL);
+                const dataText = await response.text();
+                
+                // Parse rows (assuming TSV format; use ',' for CSV)
+                const rows = dataText.split('\n').map(row => row.split('\t'));
+                
+                if (rows.length === 0 || rows[0].length === 1 && rows[0][0] === "") {
+                    document.getElementById('loading').innerText = "No data found.";
+                    return;
+                }
+
+                // Extract headers (first row) and content rows
+                const headers = rows[0];
+                const bodyRows = rows.slice(1);
+
+                // Bind headers to HTML
+                const headContainer = document.getElementById('table-head');
+                let headHtml = '<tr>';
+                headers.forEach(header => {
+                    headHtml += `<th>${header.trim()}</th>`;
+                });
+                headHtml += '</tr>';
+                headContainer.innerHTML = headHtml;
+
+                // Bind rows to HTML
+                const bodyContainer = document.getElementById('table-body');
+                let bodyHtml = '';
+                bodyRows.forEach(row => {
+                    // Skip empty trailing rows
+                    if (row.length === 1 && row[0] === "") return; 
+                    
+                    bodyHtml += '<tr>';
+                    row.forEach(cell => {
+                        bodyHtml += `<td>${cell.trim()}</td>`;
+                    });
+                    bodyHtml += '</tr>';
+                });
+                bodyContainer.innerHTML = bodyHtml;
+
+                // Toggle visibility
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('data-table').style.display = 'table';
+
+            } catch (error) {
+                console.error('Error fetching sheet data:', error);
+                document.getElementById('loading').innerText = "Failed to load data.";
+            }
+        }
+
+        // Initialize data load on page ready
+        window.addEventListener('DOMContentLoaded', fetchAndBindData);
+    </script>
 </body>
 </html>
