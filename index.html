@@ -86,7 +86,9 @@
 
         const CONFIG = {
 
-            DATA_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkGFBsNsBPE0XFepMvdt54qhchiN2rXpSppYOGJ9lbyW7WuBH7VQ63_MwnqgtUTaTVP_oUQttVNUx4/pub?gid=0&single=true&output=csv",
+            STAGE_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkGFBsNsBPE0XFepMvdt54qhchiN2rXpSppYOGJ9lbyW7WuBH7VQ63_MwnqgtUTaTVP_oUQttVNUx4/pub?gid=684757268&single=true&output=csv",
+
+            DATA_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkGFBsNsBPE0XFepMvdt54qhchiN2rXpSppYOGJ9lbyW7WuBH7VQ63_MwnqgtUTaTVP_oUQttVNUx4/pub?gid=247517591&single=true&output=csv",
 
             CATEGORY_COLUMN: "Category",
 
@@ -98,7 +100,10 @@
 
             SORT_COLUMN: "Prize",
 
+            STAGE_TAB_NAME: "Stage Status",
+
             HIDE_COLUMNS: [
+                "Timestamp",
                 "Category",
                 "Grade",
                 "Item"
@@ -134,6 +139,8 @@
         let groupedData = {};
 
         let currentCategory = "";
+
+        let stageData = [];
 
         function getColumnIndex(name) {
             return headers.indexOf(name);
@@ -290,38 +297,44 @@
         function renderTabs() {
 
             const tabs = document.getElementById("categoryTabs");
-
             tabs.innerHTML = "";
 
-            const categories = Object.keys(groupedData).sort();
+            // Create all tabs (Stage Status first)
+            const allTabs = [CONFIG.STAGE_TAB_NAME, ...Object.keys(groupedData)
+                            .filter(category => category && category.trim() !== "")
+                            .sort()];
 
-            categories.forEach((category, index) => {
+            allTabs.forEach((tabName, index) => {
 
                 const button = document.createElement("button");
-
                 button.className = "nav-link";
+                button.textContent = tabName;
 
-                button.innerHTML = category;
-
-                if (index == 0) {
-
+                // First tab (Stage Status) is active by default
+                if (index === 0) {
                     button.classList.add("active");
-
-                    currentCategory = category;
-
                 }
 
                 button.onclick = function () {
 
+                    // Remove active state from all tabs
                     document
                         .querySelectorAll("#categoryTabs .nav-link")
-                        .forEach(x => x.classList.remove("active"));
+                        .forEach(tab => tab.classList.remove("active"));
 
+                    // Activate clicked tab
                     this.classList.add("active");
 
-                    currentCategory = category;
+                    if (tabName === CONFIG.STAGE_TAB_NAME) {
 
-                    renderCategory();
+                        renderStageDashboard();
+
+                    } else {
+
+                        currentCategory = tabName;
+                        renderCategory();
+
+                    }
 
                 };
 
@@ -329,7 +342,8 @@
 
             });
 
-            renderCategory();
+            // Show Stage Dashboard initially
+            renderStageDashboard();
 
         }
 
@@ -506,7 +520,101 @@
 
             });
 
-        loadData();
+        function renderStageDashboard() {
+
+            const content = document.getElementById("content");
+
+            content.innerHTML = "";
+
+            const row = document.createElement("div");
+
+            row.className = "row";
+
+            stageData.forEach(stage => {
+
+                const col = document.createElement("div");
+
+                col.className = "col-lg-4 col-md-6 mb-4";
+
+                col.innerHTML = `
+
+        <div class="card shadow h-100">
+
+            <div class="card-header bg-primary text-white">
+
+                <h5 class="mb-0">${stage.Stage}</h5>
+
+            </div>
+
+            <div class="card-body">
+
+                <p>
+                    <strong>Grade</strong><br>
+                    ${stage.Grade}
+                </p>
+
+                <p>
+                    <strong>Item</strong><br>
+                    ${stage.Item}
+                </p>
+
+            </div>
+
+            <div class="card-footer text-muted">
+
+                Updated : ${stage.Updated}
+
+            </div>
+
+        </div>
+
+        `;
+
+                row.appendChild(col);
+
+            });
+
+            content.appendChild(row);
+
+        }
+
+        async function loadStageData() {
+
+            const response = await fetch(CONFIG.STAGE_URL);
+
+            const csv = await response.text();
+
+            const rows = parseCSV(csv);
+
+            const headers = rows[0];
+
+            stageData = [];
+
+            for (let i = 1; i < rows.length; i++) {
+
+                const obj = {};
+
+                headers.forEach((h, index) => {
+
+                    obj[h] = rows[i][index];
+
+                });
+
+                stageData.push(obj);
+
+            }
+
+        }
+
+        async function initialize() {
+
+            await loadStageData();
+
+            await loadData();
+
+        }
+
+        initialize();
 
     </script>
 
